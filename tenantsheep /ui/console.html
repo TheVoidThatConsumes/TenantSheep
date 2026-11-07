@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>TenantSheep</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f6f7f9;--fg:#1c1f24;--card:#fff;--mut:#667085;--bd:#d9dde3;--ac:#2f6f4f;--err:#b42318;--code:#f0f2f5}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e6e8eb;--card:#1d2026;--mut:#98a2b3;--bd:#323741;--ac:#5bbf8a;--err:#f97066;--code:#14161a}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--bd)}
+header h1{font-size:17px;margin:0 8px 0 0}header h1 span{color:var(--ac)}
+input,select,textarea,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:6px 9px}
+textarea,input.mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+button{cursor:pointer}button.p{background:var(--ac);border-color:var(--ac);color:#fff}
+.chip{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--bd);color:var(--mut)}.chip.on{color:var(--ac);border-color:var(--ac)}
+main{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 56px)}
+nav{padding:12px;border-right:1px solid var(--bd);overflow:auto}
+nav h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:14px 6px 4px}
+nav a{display:block;padding:5px 8px;border-radius:6px;cursor:pointer;color:var(--fg)}
+nav a:hover{background:var(--code)}nav a.sel{background:var(--ac);color:#fff}
+section{padding:16px;display:grid;gap:14px;align-content:start;max-width:980px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px}
+.card h2{margin:0 0 2px;font-size:16px}.mut{color:var(--mut);font-size:12.5px}
+label{display:block;margin:10px 0 3px;font-size:12.5px;color:var(--mut)}
+.card input,.card textarea{width:100%}
+pre{margin:8px 0 0;padding:10px;background:var(--code);border-radius:6px;overflow:auto;max-height:440px;font-size:12.5px;white-space:pre-wrap;word-break:break-word}
+.st{font-weight:600}.ok{color:var(--ac)}.bad{color:var(--err)}
+details{padding:0 16px 10px;background:var(--card);border-bottom:1px solid var(--bd)}summary{cursor:pointer;color:var(--mut);padding:6px 0}
+@media(max-width:700px){main{grid-template-columns:1fr}nav{border-right:0;border-bottom:1px solid var(--bd)}}
+</style></head><body>
+<header>
+ <h1>Tenant<span>Sheep</span></h1>
+ <input id="em" value="alice@acme.test" size="20"><input id="pw" type="password" value="Password123!" size="12">
+ <button class="p" id="login">Log in to both</button>
+ <button id="asA">Alice</button><button id="asB">Bob</button>
+ <span class="chip" id="cd">distro: out</span><span class="chip" id="cc">create: out</span>
+</header>
+<details><summary>Tokens (editable &mdash; paste forged JWTs here)</summary>
+ <label>distro-api token</label><input class="mono" id="td" style="width:100%">
+ <label>create-api token</label><input class="mono" id="tc" style="width:100%">
+</details>
+<main><nav id="nav"></nav>
+<section>
+ <div class="card" id="form"></div>
+ <div class="card"><b>Response</b> <span id="meta" class="mut"></span><pre id="out">Nothing sent yet.</pre></div>
+</section></main>
+<script>
+const $=s=>document.querySelector(s);
+const BASE={distro:'/distro',create:'/create'};
+const EP=[
+{g:'distro',n:'List campaigns',m:'GET',p:'/api/campaigns',f:[]},
+{g:'distro',n:'Search campaigns',m:'GET',p:'/api/campaigns/search',f:[{k:'filter',in:'query',d:'{}',h:'JSON object merged into the Mongo query'}]},
+{g:'distro',n:'Campaign by ID',m:'GET',p:'/api/campaigns/:id',f:[{k:'id',in:'path'}]},
+{g:'distro',n:'Create campaign',m:'POST',p:'/api/campaigns',f:[{k:'name',in:'body',d:'Test campaign'}]},
+{g:'distro',n:'Legacy preview',m:'GET',p:'/api/campaigns/:id/preview-legacy',f:[{k:'id',in:'path'}]},
+{g:'distro',n:'Logo from URL',m:'POST',p:'/api/campaigns/:id/logo-from-url',f:[{k:'id',in:'path'},{k:'url',in:'body',d:'http://decoy-metadata:1338/'}]},
+{g:'distro',n:'My profile',m:'GET',p:'/api/profile/me',f:[]},
+{g:'distro',n:'Update profile',m:'PUT',p:'/api/profile/me',f:[{k:'json',in:'json',d:'{"email":"alice@acme.test"}'}]},
+{g:'distro',n:'Asset download',m:'GET',p:'/api/assets/download',f:[{k:'file',in:'query',d:'acme-summer-launch-brief.txt'}]},
+{g:'distro',n:'Team invite',m:'POST',p:'/api/team/invite',f:[{k:'inviteeEmail',in:'body',d:'new@acme.test'},{k:'inviterName',in:'body',d:'Alice'}]},
+{g:'distro',n:'Upload URL',m:'POST',p:'/api/storage/:id/upload-url',f:[{k:'id',in:'path',d:'1'},{k:'filename',in:'body',d:'logo.png'}]},
+{g:'distro',n:'Download URL',m:'GET',p:'/api/storage/download-url',f:[{k:'key',in:'query',d:'logo.png'}]},
+{g:'create',n:'List projects',m:'GET',p:'/api/projects/',f:[]},
+{g:'create',n:'Search projects',m:'GET',p:'/api/projects/search',f:[{k:'q',in:'query',d:'Acme'}]},
+{g:'create',n:'Create project',m:'POST',p:'/api/projects/',f:[{k:'name',in:'body',d:'New project'}]},
+{g:'create',n:'Project raw (no auth)',m:'GET',p:'/api/projects/:id/raw',auth:false,f:[{k:'id',in:'path',d:'1'}]},
+{g:'create',n:'Update project',m:'PUT',p:'/api/projects/:id',f:[{k:'id',in:'path',d:'1'},{k:'json',in:'json',d:'{"status":"active"}'}]},
+{g:'create',n:'Export project',m:'POST',p:'/api/projects/:id/export',f:[{k:'id',in:'path',d:'1'}]},
+{g:'raw',n:'Raw request',raw:true}
+];
+const tok={distro:sessionStorage.td||'',create:sessionStorage.tc||''};
+function sync(){$('#td').value=tok.distro;$('#tc').value=tok.create;
+ for(const [s,id] of [['distro','cd'],['create','cc']]){const c=$('#'+id);c.textContent=s+': '+(tok[s]?'token set':'out');c.className='chip'+(tok[s]?' on':'')}
+ sessionStorage.td=tok.distro;sessionStorage.tc=tok.create}
+$('#td').oninput=e=>{tok.distro=e.target.value.trim();sync()};
+$('#tc').oninput=e=>{tok.create=e.target.value.trim();sync()};
+async function req(method,url,body,svc,auth=true){
+ const h={};let b;
+ if(body!==undefined){h['Content-Type']='application/json';b=body}
+ if(auth&&svc&&tok[svc])h.Authorization='Bearer '+tok[svc];
+ const t=performance.now();
+ try{const r=await fetch(url,{method,headers:h,body:b});const txt=await r.text();
+  let shown=txt;try{shown=JSON.stringify(JSON.parse(txt),null,2)}catch(e){}
+  show(r.status+' '+r.statusText,r.ok,Math.round(performance.now()-t)+' ms · '+(r.headers.get('content-type')||''),shown);return{r,txt}}
+ catch(e){show('Network error',false,'',String(e))}}
+function show(st,ok,meta,body){$('#meta').innerHTML='';const s=document.createElement('span');s.className='st '+(ok?'ok':'bad');s.textContent=st;
+ $('#meta').append(s,' '+meta);$('#out').textContent=body}
+async function login(){
+ const email=$('#em').value,password=$('#pw').value,o=[];
+ const [d,c]=await Promise.allSettled([
+  fetch('/distro/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}).then(r=>r.json()),
+  fetch('/create/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}).then(r=>r.json())]);
+ tok.distro=d.value&&d.value.token||'';tok.create=c.value&&c.value.access_token||'';sync();
+ show('Login',!!(tok.distro&&tok.create),email,'distro: '+(tok.distro?'ok':JSON.stringify(d.value||String(d.reason)))+'\ncreate: '+(tok.create?'ok':JSON.stringify(c.value||String(c.reason))));
+}
+$('#login').onclick=login;
+$('#asA').onclick=()=>{$('#em').value='alice@acme.test';login()};
+$('#asB').onclick=()=>{$('#em').value='bob@borealis.test';login()};
+const nav=$('#nav');let cur=0;
+function buildNav(){nav.innerHTML='';let last='';
+ EP.forEach((e,i)=>{if(e.g!==last){const h=document.createElement('h3');h.textContent={distro:'distro-api (Node)',create:'create-api (FastAPI)',raw:'Tools'}[e.g];nav.append(h);last=e.g}
+  const a=document.createElement('a');a.textContent=e.n;a.className=i===cur?'sel':'';a.onclick=()=>{cur=i;buildNav();renderForm()};nav.append(a)})}
+function field(k,label,val,ta){return `<label>${label}</label>`+(ta?`<textarea rows="5" data-k="${k}"></textarea>`:`<input data-k="${k}">`)}
+function renderForm(){
+ const e=EP[cur],f=$('#form');
+ if(e.raw){f.innerHTML=`<h2>Raw request</h2><div class="mut">Full path through nginx, e.g. /distro/api/campaigns or /create/api/projects/</div>
+  <label>Method</label><select data-k="m"><option>GET<option>POST<option>PUT<option>DELETE<option>PATCH</select>
+  ${field('path','Path')}<label>Attach token</label><select data-k="svc"><option value="distro">distro<option value="create">create<option value="">none</select>
+  ${field('body','Body (JSON, optional)',0,1)}<p><button class="p" id="go">Send</button></p>`;
+  f.querySelector('[data-k=path]').value='/distro/api/campaigns';
+  f.querySelector('#go').onclick=()=>{const v=k=>f.querySelector(`[data-k=${k}]`).value;const b=v('body').trim();
+   req(v('m'),v('path'),b||undefined,v('svc'),!!v('svc'))};return}
+ const needs=e.auth===false?'No auth required':'Sends Bearer token for '+e.g;
+ f.innerHTML=`<h2>${e.n}</h2><div class="mut"><code>${e.m} ${BASE[e.g]}${e.p}</code> &middot; ${needs}</div>`+
+  e.f.map(x=>field(x.k,x.k+(x.h?' — '+x.h:''),0,x.in==='json')).join('')+`<p><button class="p" id="go">Send</button></p>`;
+ e.f.forEach(x=>f.querySelector(`[data-k="${x.k}"]`).value=x.d||'');
+ f.querySelector('#go').onclick=()=>{
+  let path=e.p,q=[],body={},raw;
+  for(const x of e.f){const v=f.querySelector(`[data-k="${x.k}"]`).value;
+   if(x.in==='path')path=path.replace(':'+x.k,encodeURIComponent(v));
+   else if(x.in==='query')q.push(x.k+'='+encodeURIComponent(v));
+   else if(x.in==='body')body[x.k]=v;else raw=v}
+  const url=BASE[e.g]+path+(q.length?'?'+q.join('&'):'');
+  const hasBody=e.f.some(x=>x.in==='body'||x.in==='json');
+  req(e.m,url,hasBody?(raw!==undefined?raw:JSON.stringify(body)):(e.m==='POST'?'{}':undefined),e.g,e.auth!==false)}}
+sync();buildNav();renderForm();
+</script></body></html>

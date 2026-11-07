@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>TenantSheep</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f5f6f8;--fg:#1a1d21;--card:#fff;--mut:#667085;--bd:#dde1e7;--ac:#2f6f4f;--err:#b42318;--code:#eef0f3}
+@media(prefers-color-scheme:dark){:root{--bg:#121417;--fg:#e6e8eb;--card:#1b1e23;--mut:#98a2b3;--bd:#30353d;--ac:#5bbf8a;--err:#f97066;--code:#121417}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+a{color:var(--ac);text-decoration:none}h1{font-size:22px;margin:0}h3{margin:0 0 8px;font-size:15px}
+header{display:flex;gap:6px;align-items:center;padding:0 20px;height:54px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0}
+.brand{font-weight:700;font-size:18px;color:var(--fg);margin-right:18px}.brand b,h1 b{color:var(--ac)}
+header nav{display:flex;gap:2px}header a:not(.brand){padding:6px 11px;border-radius:6px;color:var(--fg)}header a.on{background:var(--code);font-weight:600}
+.sp{flex:1}main{max-width:1000px;margin:0 auto;padding:22px 20px;display:grid;gap:16px}footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
+input,select,textarea,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:7px 10px}
+button{cursor:pointer}button.p{background:var(--ac);border-color:var(--ac);color:#fff}button.g{background:none}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}form{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}form input{flex:1;min-width:160px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}.cc{display:grid;gap:6px;color:var(--fg)}.cc:hover{border-color:var(--ac)}
+.stats,.two{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.n{font-size:30px;font-weight:700;color:var(--ac)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd);color:var(--fg)}
+.b{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid var(--bd);color:var(--mut);width:fit-content}.b.active{color:var(--ac);border-color:var(--ac)}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:500;font-size:12px}
+pre{background:var(--code);padding:10px;border-radius:6px;overflow:auto;max-height:340px;white-space:pre-wrap;word-break:break-word;font-size:12.5px;margin:8px 0 0}
+.mut{color:var(--mut)}.err{color:var(--err)}.hide{display:none}.hint{font-size:12px}
+.lw{min-height:100vh;display:grid;place-items:center}.lw form{flex-direction:column;width:340px;padding:26px}.lw form input{flex:none}
+#toast{position:fixed;right:16px;bottom:16px;display:grid;gap:8px}.t{background:var(--ac);color:#fff;padding:9px 14px;border-radius:8px}.t.bad{background:var(--err)}
+</style></head><body>
+<div id="app"></div><div id="toast"></div>
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S={d:localStorage.td||'',c:localStorage.tc||'',me:null},B={d:'/distro',c:'/create'};
+const badge=s=>`<span class="b ${esc(s)}">${esc(s)}</span>`;
+const date=d=>d?new Date(d).toLocaleDateString():'';
+function toast(m,bad){const t=document.createElement('div');t.className='t'+(bad?' bad':'');t.textContent=m;$('#toast').append(t);setTimeout(()=>t.remove(),3500)}
+const run=f=>f().catch(e=>e.message!=='Session expired'&&toast(e.message,1));
+function out(sel,txt){const e=$(sel);e.textContent=txt;e.classList.remove('hide')}
+async function api(svc,method,path,body,auth=true){
+ const h={};if(body!==undefined)h['Content-Type']='application/json';
+ if(auth&&S[svc])h.Authorization='Bearer '+S[svc];
+ const r=await fetch(B[svc]+path,{method,headers:h,body:body===undefined?undefined:JSON.stringify(body)});
+ const t=await r.text();let j=t;try{j=JSON.parse(t)}catch(e){}
+ if(r.status===401&&auth){logout();throw new Error('Session expired')}
+ if(!r.ok){const m=j&&(j.error||j.detail)||r.statusText;const e=new Error(typeof m==='string'?m:JSON.stringify(m));e.data=j;throw e}
+ return j}
+function logout(){S.d=S.c='';S.me=null;delete localStorage.td;delete localStorage.tc;if(location.hash==='#/login')route();else location.hash='#/login'}
+function shell(active,html){
+ const nav=[['','Dashboard'],['campaigns','Campaigns'],['projects','Projects'],['assets','Assets'],['team','Team']];
+ $('#app').innerHTML=`<header><a class="brand" href="#/">Tenant<b>Sheep</b></a><nav>${nav.map(([h,n])=>`<a href="#/${h}" class="${active===h?'on':''}">${n}</a>`).join('')}</nav><div class="sp"></div><a href="#/profile" class="${active==='profile'?'on':''}">${esc(S.me&&S.me.email)}</a><button class="g" id="lo">Log out</button></header><main>${html}</main><footer>TenantSheep training lab &middot; intentionally vulnerable &middot; <a href="/console.html">API console</a></footer>`;
+ $('#lo').onclick=()=>logout()}
+
+function loginPage(){
+ $('#app').innerHTML=`<div class="lw"><form id="lg" class="card"><h1>Tenant<b>Sheep</b></h1><p class="mut">Sign in to your workspace</p><input id="e" placeholder="Email" autocomplete="username"><input id="p" type="password" placeholder="Password" autocomplete="current-password"><button class="p">Sign in</button><p id="le" class="err hide"></p><p class="mut hint">Demo: alice@acme.test or bob@borealis.test &middot; Password123!</p></form></div>`;
+ $('#lg').onsubmit=async ev=>{ev.preventDefault();const body={email:$('#e').value,password:$('#p').value};
+  const [d,c]=await Promise.allSettled([api('d','POST','/api/auth/login',body,false),api('c','POST','/api/auth/login',body,false)]);
+  if(d.status==='fulfilled'&&c.status==='fulfilled'){S.d=d.value.token;S.c=c.value.access_token;localStorage.td=S.d;localStorage.tc=S.c;location.hash='#/'}
+  else out('#le',(d.reason||c.reason).message)}}
+
+async function dash(){
+ const [c,p]=await Promise.all([api('d','GET','/api/campaigns'),api('c','GET','/api/projects/')]);
+ const list=(a,f,h)=>a.slice(0,5).map(x=>`<a class="row" href="#/${h}/${esc(x._id||x.id)}">${esc(x.name)}${badge(x.status)}</a>`).join('')||'<p class="mut">Nothing yet.</p>';
+ shell('',`<div><h1>Welcome back</h1><span class="mut">Signed in as ${esc(S.me.email)} &middot; role: ${esc(S.me.role)}</span></div>
+ <div class="stats"><div class="card"><div class="n">${c.length}</div>Campaigns</div><div class="card"><div class="n">${c.filter(x=>x.status==='active').length}</div>Active campaigns</div><div class="card"><div class="n">${p.length}</div>Projects</div></div>
+ <div class="two"><div class="card"><h3>Recent campaigns</h3>${list(c,0,'campaigns')}</div><div class="card"><h3>Recent projects</h3>${list(p,0,'projects')}</div></div>`)}
+
+async function campaigns(term=''){
+ const list=term?await api('d','GET','/api/campaigns/search?filter='+encodeURIComponent(JSON.stringify({name:{$regex:term,$options:'i'}}))):await api('d','GET','/api/campaigns');
+ shell('campaigns',`<div class="bar"><h1>Campaigns</h1><div class="sp"></div><input id="q" placeholder="Search campaigns, press Enter" value="${esc(term)}"><button id="nw" class="p">New campaign</button></div>
+ <form id="nf" class="card hide"><input id="nn" placeholder="Campaign name" required><button class="p">Create</button></form>
+ <div class="grid">${list.map(c=>`<a class="card cc" href="#/campaigns/${esc(c._id)}"><b>${esc(c.name)}</b>${badge(c.status)}<span class="mut">Created ${date(c.createdAt)}</span></a>`).join('')||'<p class="mut">No campaigns found.</p>'}</div>`);
+ $('#q').onkeydown=e=>{if(e.key==='Enter')run(()=>campaigns(e.target.value.trim()))};
+ $('#nw').onclick=()=>$('#nf').classList.toggle('hide');
+ $('#nf').onsubmit=e=>{e.preventDefault();run(async()=>{await api('d','POST','/api/campaigns',{name:$('#nn').value});toast('Campaign created');await campaigns()})}}
+
+async function campaign(id){
+ const c=await api('d','GET','/api/campaigns/'+encodeURIComponent(id));
+ shell('campaigns',`<a href="#/campaigns">&larr; Campaigns</a><div class="bar"><h1>${esc(c.name)}</h1>${badge(c.status)}<div class="sp"></div><button id="pv">Preview link</button></div>
+ <pre id="pr" class="hide"></pre>
+ <div class="two"><div class="card"><h3>Brand logo</h3><p class="mut">Current: ${esc(c.logoUrl||'none')}</p><form id="lf"><input id="lu" placeholder="https://example.com/logo.png"><button class="p">Import from URL</button></form><pre id="lr" class="hide"></pre></div>
+ <div class="card"><h3>Storage</h3><form id="uf"><input id="un" placeholder="filename, e.g. banner.png"><button>Upload link</button></form><form id="df"><input id="dn" placeholder="object key"><button>Download link</button></form><pre id="sr" class="hide"></pre></div></div>`);
+ $('#pv').onclick=()=>run(async()=>out('#pr',JSON.stringify(await api('d','GET',`/api/campaigns/${encodeURIComponent(id)}/preview-legacy`),null,2)));
+ $('#lf').onsubmit=e=>{e.preventDefault();run(async()=>{try{const r=await api('d','POST',`/api/campaigns/${encodeURIComponent(id)}/logo-from-url`,{url:$('#lu').value});out('#lr','Fetched (HTTP '+r.status+')\n\n'+r.bodyPreview)}catch(x){out('#lr',x.message+(x.data&&x.data.detail?'\n'+x.data.detail:''))}})};
+ $('#uf').onsubmit=e=>{e.preventDefault();run(async()=>out('#sr','Upload link:\n'+(await api('d','POST',`/api/storage/${encodeURIComponent(id)}/upload-url`,{filename:$('#un').value})).uploadUrl))};
+ $('#df').onsubmit=e=>{e.preventDefault();run(async()=>out('#sr','Download link:\n'+(await api('d','GET','/api/storage/download-url?key='+encodeURIComponent($('#dn').value))).downloadUrl))}}
+
+async function projects(term=''){
+ const list=term?await api('c','GET','/api/projects/search?q='+encodeURIComponent(term)):await api('c','GET','/api/projects/');
+ shell('projects',`<div class="bar"><h1>Projects</h1><div class="sp"></div><input id="q" placeholder="Search projects, press Enter" value="${esc(term)}"><button id="nw" class="p">New project</button></div>
+ <form id="nf" class="card hide"><input id="nn" placeholder="Project name" required><button class="p">Create</button></form>
+ <div class="card"><table><tr><th>Name</th><th>Status</th><th></th></tr>${list.map(p=>`<tr><td><a href="#/projects/${p.id}">${esc(p.name)}</a></td><td><select data-id="${p.id}">${['draft','active','archived'].map(s=>`<option${s===p.status?' selected':''}>${s}</option>`).join('')}</select></td><td><button data-x="${p.id}">Export</button></td></tr>`).join('')||'<tr><td class="mut">No projects found.</td></tr>'}</table></div>`);
+ $('#q').onkeydown=e=>{if(e.key==='Enter')run(()=>projects(e.target.value.trim()))};
+ $('#nw').onclick=()=>$('#nf').classList.toggle('hide');
+ $('#nf').onsubmit=e=>{e.preventDefault();run(async()=>{await api('c','POST','/api/projects/',{name:$('#nn').value});toast('Project created');await projects()})};
+ document.querySelectorAll('select[data-id]').forEach(s=>s.onchange=()=>run(async()=>{await api('c','PUT','/api/projects/'+s.dataset.id,{status:s.value});toast('Status updated')}));
+ document.querySelectorAll('button[data-x]').forEach(b=>b.onclick=()=>run(async()=>{await api('c','POST',`/api/projects/${b.dataset.x}/export`);toast('Export queued')}))}
+
+async function project(id){
+ const p=await api('c','GET',`/api/projects/${encodeURIComponent(id)}/raw`,undefined,false);
+ shell('projects',`<a href="#/projects">&larr; Projects</a><div class="bar"><h1>${esc(p.name)}</h1>${badge(p.status)}<div class="sp"></div><button id="ex">Export</button></div>
+ <div class="card"><h3>Details</h3><p class="mut">Project #${esc(p.id)} &middot; Org ${esc(p.org_id)} &middot; shareable link</p><form id="rf"><input id="rn" value="${esc(p.name)}"><button class="p">Rename</button></form></div>`);
+ $('#ex').onclick=()=>run(async()=>{await api('c','POST',`/api/projects/${encodeURIComponent(id)}/export`);toast('Export queued')});
+ $('#rf').onsubmit=e=>{e.preventDefault();run(async()=>{await api('c','PUT','/api/projects/'+encodeURIComponent(id),{name:$('#rn').value});toast('Renamed');await project(id)})}}
+
+async function assets(q){
+ const file=q.get('file'),files=[['acme-summer-launch-brief.txt','Acme Summer Launch brief']];
+ shell('assets',`<h1>Asset library</h1><div class="card">${files.map(([f,l])=>`<a class="row" href="#/assets?file=${encodeURIComponent(f)}">${esc(l)}<span class="mut">${esc(f)}</span></a>`).join('')}</div><div class="card ${file?'':'hide'}"><h3>Viewing: ${esc(file)}</h3><pre id="av">Loading…</pre></div>`);
+ if(file)try{$('#av').textContent=await api('d','GET','/api/assets/download?file='+encodeURIComponent(file))}catch(e){$('#av').textContent=e.message}}
+
+function team(){
+ shell('team',`<h1>Team</h1><div class="card"><h3>Invite a teammate</h3><form id="tf"><input id="ie" placeholder="teammate@company.com"><input id="in" value="${esc(S.me.email.split('@')[0])}" placeholder="Your name"><button class="p">Send invite</button></form><pre id="tr" class="hide"></pre></div>`);
+ $('#tf').onsubmit=e=>{e.preventDefault();run(async()=>{const r=await api('d','POST','/api/team/invite',{inviteeEmail:$('#ie').value,inviterName:$('#in').value});toast('Invitation sent');out('#tr',r.rawMessage)})}}
+
+function profile(){
+ shell('profile',`<h1>Profile</h1><div class="card"><p>Email: <b>${esc(S.me.email)}</b><br>Role: ${esc(S.me.role)}<br><span class="mut">ID ${esc(S.me.id)}</span></p><form id="pf"><input id="pe" value="${esc(S.me.email)}"><button class="p">Update email</button></form></div>`);
+ $('#pf').onsubmit=e=>{e.preventDefault();run(async()=>{S.me=await api('d','PUT','/api/profile/me',{email:$('#pe').value});toast('Profile updated');profile()})}}
+
+async function route(){
+ const [p,qs]=location.hash.slice(2).split('?'),[a,b]=p.split('/').filter(Boolean).concat([,]).slice(0,2);
+ if(!S.d||!S.c){if(a!=='login'){location.hash='#/login';return}return loginPage()}
+ if(a==='login'){location.hash='#/';return}
+ try{
+  if(!S.me)S.me=await api('d','GET','/api/profile/me');
+  if(!a)await dash();else if(a==='campaigns')b?await campaign(b):await campaigns();
+  else if(a==='projects')b?await project(b):await projects();
+  else if(a==='assets')await assets(new URLSearchParams(qs||''));
+  else if(a==='team')team();else if(a==='profile')profile();else location.hash='#/';
+ }catch(e){if(e.message!=='Session expired')shell(a||'',`<div class="card err">${esc(e.message)}</div>`)}}
+addEventListener('hashchange',route);route();
+</script></body></html>

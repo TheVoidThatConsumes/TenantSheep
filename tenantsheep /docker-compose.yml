@@ -1,0 +1,104 @@
+services:
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: ["mongo_data:/data/db"]
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tenantsheep
+      POSTGRES_PASSWORD: tenantsheep
+      POSTGRES_DB: tenantsheep_create
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenantsheep -d tenantsheep_create"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  # minio/minio was deleted from Docker Hub by MinIO on 2026-09-11 (the
+  # quay.io mirror followed suit on 2026-09-24, now requiring a license).
+  # cgr.dev/chainguard/minio is the current maintained replacement, same
+  # upstream binary. It runs as uid 65532, not root, so minio-init chowns
+  # the volume first -- without that step it fails with "file access denied".
+  minio-init:
+    image: busybox:1.36
+    command: chown -R 65532:65532 /data
+    volumes: ["minio_data:/data"]
+
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: tenantsheep
+      MINIO_ROOT_PASSWORD: tenantsheep123
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio_data:/data"]
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+  decoy-metadata:
+    build: ./decoy-metadata
+    ports: ["1338:1338"]
+
+  distro-api:
+    build: ./distro-api
+    environment:
+      MONGO_URI: mongodb://mongo:27017/tenantsheep_distro
+      JWT_SECRET: tenantsheep-distro-secret-change-me
+      PORT: 4000
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: tenantsheep
+      MINIO_SECRET_KEY: tenantsheep123
+    ports: ["4000:4000"]
+    depends_on: [mongo, minio]
+
+  create-api:
+    build: ./create-api
+    environment:
+      DATABASE_URL: postgresql://tenantsheep:tenantsheep@postgres:5432/tenantsheep_create
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      JWT_SECRET: tenantsheep-create-secret-change-me
+      DEBUG: "true"
+    ports: ["8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: on-failure
+
+  create-worker:
+    build: ./create-api
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://tenantsheep:tenantsheep@postgres:5432/tenantsheep_create
+      CELERY_BROKER_URL: redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: on-failure
+
+  nginx:
+    image: nginx:1.27
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ui:/usr/share/nginx/html:ro
+    ports: ["8080:80"]
+    depends_on: [distro-api, create-api]
+
+volumes:
+  mongo_data:
+  postgres_data:
+  minio_data:
