@@ -31,6 +31,63 @@ stretch items for deeper exploration.
 ---
 
 ## Architecture
+## Architecture
+
+```mermaid
+graph TD
+    Browser["Browser / UI<br/>index.html + console.html"] -->|":8080"| Nginx["nginx<br/>reverse proxy"]
+
+    Nginx -->|"/distro/*"| Sec["secondary-api<br/>Node / Express"]
+    Nginx -->|"/create/*"| Core["core-api<br/>FastAPI"]
+    Nginx -->|"/ , /console.html"| StaticUI[("ui/ static files")]
+
+    Sec --> Mongo[("MongoDB<br/>mongo:27017")]
+    Sec --> MinIO[("MinIO<br/>minio:9000 / :9001")]
+    Sec -.->|"SSRF target (TG-01)"| Decoy["decoy-metadata<br/>:1338"]
+
+    Core --> Postgres[("PostgreSQL<br/>postgres:5432")]
+    Core --> Redis[("Redis<br/>redis:6379")]
+    Worker["create-worker<br/>Celery"] --> Redis
+    Worker --> Postgres
+
+    classDef store fill:#eef,stroke:#88a,stroke-width:1px
+    class Mongo,Postgres,Redis,MinIO store
+```
+
+### Auth flow
+
+Each service issues and checks its own JWT independently — there's no
+shared session between them.
+
+```mermaid
+sequenceDiagram
+    actor Op as Operator (Acme or Borealis)
+    participant UI as Browser / console.html
+    participant Nginx as nginx
+    participant Sec as secondary-api
+    participant Core as core-api
+
+    Op->>UI: email + password
+    UI->>Nginx: POST /distro/api/auth/login
+    Nginx->>Sec: proxy
+    Sec-->>UI: JWT A (org-scoped, secondary-api only)
+
+    UI->>Nginx: POST /create/api/auth/login
+    Nginx->>Core: proxy
+    Core-->>UI: JWT B (org-scoped, core-api only)
+
+    Note over Sec,Core: Two independent tokens for two independent<br/>services - no shared session. Tenant context has<br/>to be re-checked on every request, in both places.
+
+    UI->>Nginx: GET /distro/api/campaigns (Bearer JWT A)
+    Nginx->>Sec: proxy
+    Sec->>Sec: does this query filter by org_id?
+    Sec-->>UI: campaigns (meant to be this org only)
+
+    UI->>Nginx: GET /create/api/projects/ (Bearer JWT B)
+    Nginx->>Core: proxy
+    Core->>Core: does this query filter by org_id?
+    Core-->>UI: projects (meant to be this org only)
+```
 
 | Service | Stack | Responsibility |
 |---|---|---|
