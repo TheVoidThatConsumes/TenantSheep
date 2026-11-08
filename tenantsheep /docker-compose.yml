@@ -48,8 +48,8 @@ services:
     build: ./decoy-metadata
     ports: ["1338:1338"]
 
-  distro-api:
-    build: ./distro-api
+  secondary-api:
+    build: ./secondary-api
     environment:
       MONGO_URI: mongodb://mongo:27017/tenantsheep_distro
       JWT_SECRET: tenantsheep-distro-secret-change-me
@@ -61,8 +61,8 @@ services:
     ports: ["4000:4000"]
     depends_on: [mongo, minio]
 
-  create-api:
-    build: ./create-api
+  core-api:
+    build: ./core-api
     environment:
       DATABASE_URL: postgresql://tenantsheep:tenantsheep@postgres:5432/tenantsheep_create
       REDIS_URL: redis://redis:6379/0
@@ -78,7 +78,7 @@ services:
     restart: on-failure
 
   create-worker:
-    build: ./create-api
+    build: ./core-api
     command: celery -A celery_app worker --loglevel=info
     environment:
       DATABASE_URL: postgresql://tenantsheep:tenantsheep@postgres:5432/tenantsheep_create
@@ -96,7 +96,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ui:/usr/share/nginx/html:ro
     ports: ["8080:80"]
-    depends_on: [distro-api, create-api]
+    depends_on: [secondary-api, core-api]
 
 volumes:
   mongo_data:

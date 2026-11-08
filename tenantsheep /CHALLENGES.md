@@ -3,7 +3,7 @@
 No spoilers below — full walkthroughs are in `SOLUTIONS.md`, use it when
 stuck or short on time, not as the first move.
 
-## distro-api
+## secondary-api
 
 1. **Cross-tenant campaign search.** `GET /api/campaigns/search` takes a
    `filter` query param. Find a filter that returns campaigns belonging to
@@ -18,7 +18,7 @@ stuck or short on time, not as the first move.
 5. **Asset download.** `GET /api/assets/download?file=...` — is `file`
    contained to the assets directory?
 
-## create-api
+## core-api
 
 1. **Project search.** `GET /api/projects/search?q=...` — the query term
    ends up somewhere it shouldn't. Can you make it return another org's
@@ -44,7 +44,7 @@ stuck or short on time, not as the first move.
   setup isn't guaranteed reliable, use PortSwigger's labs for the
   hands-on mechanics.
 
-## distro-api — stretch items
+## secondary-api — stretch items
 
 6. **Invite a teammate.** `POST /api/team/invite` takes `inviteeEmail` and
    `inviterName`. Can you make the email actually reach a second, unintended
@@ -60,7 +60,7 @@ stuck or short on time, not as the first move.
     `GET /api/storage/download-url` hand back a MinIO presigned URL. How
     long is it valid, and how guessable is the object key?
 
-## create-api — stretch item
+## core-api — stretch item
 
 7. **Compare `/health` with `DEBUG=true` vs `DEBUG=false`** (toggle it in
    `docker-compose.yml` and restart). What else changes besides that flag?

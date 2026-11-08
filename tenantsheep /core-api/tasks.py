@@ -8,7 +8,7 @@ from models import Project
 # who can publish directly to the broker (bypassing the FastAPI app entirely)
 # controls org_id outright.
 #
-# Direct-injection example, run from inside the create-api container:
+# Direct-injection example, run from inside the core-api container:
 #   python -c "from tasks import export_project; export_project.delay(1, 999)"
 # No HTTP request, no token, no API involved at all.
 @celery_app.task(name="export_project")

@@ -4,7 +4,7 @@ Your own reference. Don't publish this file alongside the public repo if
 you post TenantSheep anywhere — the challenge list without answers is the
 public-facing version.
 
-## distro-api
+## secondary-api
 
 **1. Cross-tenant campaign search**
 `GET /api/campaigns/search?filter={"orgId":{"$ne":null}}`
@@ -33,7 +33,7 @@ full SSRF-to-credential-theft chain without touching anything real.
 `GET /api/assets/download?file=../secret.txt` reaches the flag file one
 directory above the intended asset root.
 
-## create-api
+## core-api
 
 **1. Project search SQLi**
 `GET /api/projects/search?q=x' OR org_id != 1 --` (adjust the org_id to
@@ -53,7 +53,7 @@ the body gets applied via `setattr`, including fields that should never
 be client-settable.
 
 **4. Celery task injection**
-From inside the `create-api` or `create-worker` container:
+From inside the `core-api` or `create-worker` container:
 ```python
 from tasks import export_project
 export_project.delay(project_id=<any id>, org_id=<any fabricated org_id>)
@@ -82,7 +82,7 @@ proxying to either backend. A safe reverse-proxy config normalizes or
 strips ambiguous `Transfer-Encoding`/`Content-Length` pairs before
 forwarding; this one passes them through unexamined.
 
-## distro-api — stretch items
+## secondary-api — stretch items
 
 **6. Invite — extra recipient**
 `POST /api/team/invite` with
@@ -106,7 +106,7 @@ HTML.
 **8. Profile privilege escalation**
 `PUT /api/profile/me` with `{"role": "admin"}` while authenticated as any
 operator. `findByIdAndUpdate` applies the whole body with no field
-allowlist — same shape as create-api's mass-assignment bug (challenge 3
+allowlist — same shape as core-api's mass-assignment bug (challenge 3
 there), recurring in a different file.
 
 **9. Host header tenant enumeration**
@@ -122,14 +122,14 @@ or learns a predictable filename (`logo.png`, `export.zip`, `brief.pdf`)
 can read or overwrite another tenant's object within that window using
 `GET /api/storage/download-url?key=logo.png`.
 
-## create-api — stretch item
+## core-api — stretch item
 
 **7. Staging/prod drift**
 `GET /health` returns `{"debug_mode": true}` by default. With `DEBUG=true`
 (the default, meant to represent a staging-like posture): `/docs` and
 `/redoc` are live, CORS allows any origin, and an unhandled exception
 returns a full Python traceback in the response body. Set `DEBUG=false`
-in `docker-compose.yml` and restart `create-api` — all three close at
+in `docker-compose.yml` and restart `core-api` — all three close at
 once. This is the exact drift SoW section 4.2 asks you to confirm between
 environments, made directly comparable with one flag instead of needing
 access to two real deployments.

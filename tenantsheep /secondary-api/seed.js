@@ -20,7 +20,7 @@ async function seed() {
   ]);
 
   // Acme Media -- campaigns built from the Q4 launch and holiday email
-  // projects (create-api seed IDs 1 and 2, same org). sourceProjectId ties
+  // projects (core-api seed IDs 1 and 2, same org). sourceProjectId ties
   // the two services together narratively without any real network call.
   await Campaign.create([
     {
@@ -42,7 +42,7 @@ async function seed() {
   ]);
 
   // Borealis Co -- a campaign built from the spring lookbook project
-  // (create-api seed ID 4, Borealis's first project).
+  // (core-api seed ID 4, Borealis's first project).
   await Campaign.create([
     {
       name: 'Spring Collection -- Influencer Drop',
@@ -54,7 +54,7 @@ async function seed() {
     },
   ]);
 
-  console.log('Seeded distro-api. Logins:');
+  console.log('Seeded secondary-api. Logins:');
   console.log('  alice@acme.test / Password123!  (Acme Media)');
   console.log('  bob@borealis.test / Password123! (Borealis Co)');
   await mongoose.disconnect();

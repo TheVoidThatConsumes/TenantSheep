@@ -27,7 +27,7 @@ def seed():
 
     # Acme Media -- a creative agency's work in progress. Three projects at
     # different pipeline stages; the first two are referenced by name-matched
-    # Distribute campaigns in distro-api's seed data (Campaign.sourceProjectId).
+    # Distribute campaigns in secondary-api's seed data (Campaign.sourceProjectId).
     db.add_all([
         Project(
             name="Q4 Product Launch -- Hero Video Script",
@@ -61,7 +61,7 @@ def seed():
     ])
 
     db.commit()
-    print("Seeded create-api. Logins:")
+    print("Seeded core-api. Logins:")
     print("  alice@acme.test / Password123!  (Acme Media)")
     print("  bob@borealis.test / Password123! (Borealis Co)")
     db.close()

@@ -1,5 +1,5 @@
 // A small, local, harmless stand-in for the 169.254.169.254-style cloud
-// metadata endpoint. Used as the SSRF target for CHALLENGE 4 in distro-api,
+// metadata endpoint. Used as the SSRF target for CHALLENGE 4 in secondary-api,
 // so the SSRF -> "steal credentials" chain is demonstrable entirely locally,
 // with zero risk and zero resemblance to any real cloud account. Everything
 // returned here is fake.

@@ -27,4 +27,4 @@ app.use('/api/public', publicRoutes);
 app.use('/api/storage', storageRoutes);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`distro-api listening on ${PORT}`));
+app.listen(PORT, () => console.log(`secondary-api listening on ${PORT}`));

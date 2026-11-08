@@ -34,8 +34,8 @@ details{padding:0 16px 10px;background:var(--card);border-bottom:1px solid var(-
  <span class="chip" id="cd">distro: out</span><span class="chip" id="cc">create: out</span>
 </header>
 <details><summary>Tokens (editable &mdash; paste forged JWTs here)</summary>
- <label>distro-api token</label><input class="mono" id="td" style="width:100%">
- <label>create-api token</label><input class="mono" id="tc" style="width:100%">
+ <label>secondary-api token</label><input class="mono" id="td" style="width:100%">
+ <label>core-api token</label><input class="mono" id="tc" style="width:100%">
 </details>
 <main><nav id="nav"></nav>
 <section>
@@ -96,7 +96,7 @@ $('#asA').onclick=()=>{$('#em').value='alice@acme.test';login()};
 $('#asB').onclick=()=>{$('#em').value='bob@borealis.test';login()};
 const nav=$('#nav');let cur=0;
 function buildNav(){nav.innerHTML='';let last='';
- EP.forEach((e,i)=>{if(e.g!==last){const h=document.createElement('h3');h.textContent={distro:'distro-api (Node)',create:'create-api (FastAPI)',raw:'Tools'}[e.g];nav.append(h);last=e.g}
+ EP.forEach((e,i)=>{if(e.g!==last){const h=document.createElement('h3');h.textContent={distro:'secondary-api (Node)',create:'core-api (FastAPI)',raw:'Tools'}[e.g];nav.append(h);last=e.g}
   const a=document.createElement('a');a.textContent=e.n;a.className=i===cur?'sel':'';a.onclick=()=>{cur=i;buildNav();renderForm()};nav.append(a)})}
 function field(k,label,val,ta){return `<label>${label}</label>`+(ta?`<textarea rows="5" data-k="${k}"></textarea>`:`<input data-k="${k}">`)}
 function renderForm(){
