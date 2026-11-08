@@ -30,7 +30,8 @@ stretch items for deeper exploration.
 
 ---
 
-## Architecture
+
+
 ## Architecture
 
 ```mermaid
@@ -53,6 +54,8 @@ graph TD
     classDef store fill:#eef,stroke:#88a,stroke-width:1px
     class Mongo,Postgres,Redis,MinIO store
 ```
+
+
 
 ### Auth flow
 
