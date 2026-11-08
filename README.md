@@ -94,8 +94,8 @@ Both services share the same two tenant accounts.
 
 ## Challenges
 
-[`CHALLENGES.md`](./CHALLENGES.md) lists every vulnerability without
-spoilers, grouped by service. [`SOLUTIONS.md`](./SOLUTIONS.md) contains full
+[`CHALLENGES.md`](../CHALLENGES.md) lists every vulnerability without
+spoilers, grouped by service. [`SOLUTIONS.md`](../SOLUTIONS.md) contains full
 walkthroughs.
 
 Read `CHALLENGES.md` first. Reach for `SOLUTIONS.md` when you're stuck or
