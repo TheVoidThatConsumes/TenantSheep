@@ -44,7 +44,7 @@ graph TD
 
     Sec --> Mongo[("MongoDB<br/>mongo:27017")]
     Sec --> MinIO[("MinIO<br/>minio:9000 / :9001")]
-    Sec -.->|"SSRF target (TG-01)"| Decoy["decoy-metadata<br/>:1338"]
+    Sec -.->|"SSRF target"| Decoy["decoy-metadata<br/>:1338"]
 
     Core --> Postgres[("PostgreSQL<br/>postgres:5432")]
     Core --> Redis[("Redis<br/>redis:6379")]
