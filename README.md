@@ -94,8 +94,8 @@ Both services share the same two tenant accounts.
 
 ## Challenges
 
-[`CHALLENGES.md`](../CHALLENGES.md) lists every vulnerability without
-spoilers, grouped by service. [`SOLUTIONS.md`](../SOLUTIONS.md) contains full
+[`CHALLENGES.md`](https://github.com/TheVoidThatConsumes/TenantSheep/blob/c1fac38cc76948dec4baa5c31ea26593cd90f465/tenantsheep%20/CHALLENGES.md) lists every vulnerability without
+spoilers, grouped by service. [`SOLUTIONS.md`](https://github.com/TheVoidThatConsumes/TenantSheep/blob/c1fac38cc76948dec4baa5c31ea26593cd90f465/tenantsheep%20/SOLUTIONS.md) contains full
 walkthroughs.
 
 Read `CHALLENGES.md` first. Reach for `SOLUTIONS.md` when you're stuck or
