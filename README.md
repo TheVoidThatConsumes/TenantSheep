@@ -59,8 +59,8 @@ graph TD
 
 ### Auth flow
 
-Each service issues and checks its own JWT independently — there's no
-shared session between them.
+Each service issues and checks its own JWT independently with no
+shared session in-between.
 
 ```mermaid
 sequenceDiagram
@@ -79,7 +79,7 @@ sequenceDiagram
     Nginx->>Core: proxy
     Core-->>UI: JWT B (org-scoped, core-api only)
 
-    Note over Sec,Core: Two independent tokens for two independent<br/>services - no shared session. Tenant context has<br/>to be re-checked on every request, in both places.
+    Note over Sec,Core: These are two independent tokens for two independent<br/>services with no shared sessions. Tenant context has<br/>to be re-checked on every request, in both places.
 
     UI->>Nginx: GET /distro/api/campaigns (Bearer JWT A)
     Nginx->>Sec: proxy
