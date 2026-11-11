@@ -23,8 +23,8 @@ Services:
 - core-api: http://localhost:8000 (interactive docs at /docs)
 - nginx (fronting both + the web UI): http://localhost:8080 — the app UI is
   at `/`, a raw API console (with a form for pasting forged JWTs) is at
-  `/console.html`, and the two APIs are reverse-proxied at `/distro/` and
-  `/create/`
+  `/console.html`, and the two APIs are reverse-proxied at `/secondary-api/` and
+  `/core-api/`
 - MinIO console: http://localhost:9001 (tenantsheep / tenantsheep123)
 - decoy metadata service: http://localhost:1338 (SSRF target, fake data only)
 
