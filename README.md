@@ -71,11 +71,11 @@ sequenceDiagram
     participant Core as core-api
 
     Op->>UI: email + password
-    UI->>Nginx: POST /distro/api/auth/login
+    UI->>Nginx: POST /secondary-api/api/auth/login
     Nginx->>Sec: proxy
     Sec-->>UI: JWT A (org-scoped, secondary-api only)
 
-    UI->>Nginx: POST /create/api/auth/login
+    UI->>Nginx: POST /core-api/api/auth/login
     Nginx->>Core: proxy
     Core-->>UI: JWT B (org-scoped, core-api only)
 
@@ -130,8 +130,8 @@ docker compose down -v
 |---|---|---|
 | **Web UI** | <http://localhost:8080> | Application front-end, served at `/` |
 | **API console** | <http://localhost:8080/console.html> | Raw request console, with a form for pasting forged JWTs |
-| **distro-api** | <http://localhost:8080/distro/> · direct on <http://localhost:4000> | Node / Express |
-| **create-api** | <http://localhost:8080/create/> · direct on <http://localhost:8000> | FastAPI; interactive docs at `/create/docs` |
+| **secondary-api** | <http://localhost:8080/secondary-api/> · direct on <http://localhost:4000> | Node / Express |
+| **core-api** | <http://localhost:8080/core-api/> · direct on <http://localhost:8000> | FastAPI; interactive docs at `/core-api/docs` |
 | **MinIO console** | <http://localhost:9001> | `tenantsheep` / `tenantsheep123` |
 | **decoy-metadata** | <http://localhost:1338> | SSRF target — fake data only |
 
