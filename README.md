@@ -1,4 +1,4 @@
-# TenantSheep
+# TenantSheep.
 
 A deliberately vulnerable, two-service SaaS application built as a practice
 target for multi-tenant penetration testing. Rather than a collection of
