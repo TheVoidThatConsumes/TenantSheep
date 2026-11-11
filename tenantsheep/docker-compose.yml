@@ -49,6 +49,7 @@ services:
     ports: ["1338:1338"]
 
   secondary-api:
+    container_name: secondary-api
     build: ./secondary-api
     environment:
       MONGO_URI: mongodb://mongo:27017/tenantsheep_distro
@@ -62,6 +63,7 @@ services:
     depends_on: [mongo, minio]
 
   core-api:
+    container_name: core-api
     build: ./core-api
     environment:
       DATABASE_URL: postgresql://tenantsheep:tenantsheep@postgres:5432/tenantsheep_create
@@ -77,7 +79,8 @@ services:
         condition: service_started
     restart: on-failure
 
-  create-worker:
+  core-worker:
+    container_name: core-worker
     build: ./core-api
     command: celery -A celery_app worker --loglevel=info
     environment:
@@ -91,6 +94,7 @@ services:
     restart: on-failure
 
   nginx:
+    container_name: nginx
     image: nginx:1.27
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
