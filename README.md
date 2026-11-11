@@ -8,7 +8,7 @@ and a relational Python service, sharing tenants, fronted by a reverse
 proxy, with object storage and an async task queue in the mix.
 
 **16 deliberate vulnerabilities** span authentication, authorization, input
-handling, tenant isolation, and infrastructure configuration — plus a set of
+handling, tenant isolation and infrastructure configuration, plus a set of
 stretch items for deeper exploration.
 
 > **This is an intentionally insecure application.** Every vulnerability is
