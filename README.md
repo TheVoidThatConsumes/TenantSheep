@@ -38,8 +38,8 @@ stretch items for deeper exploration.
 graph TD
     Browser["Browser / UI<br/>index.html + console.html"] -->|":8080"| Nginx["nginx<br/>reverse proxy"]
 
-    Nginx -->|"/distro/*"| Sec["secondary-api<br/>Node / Express"]
-    Nginx -->|"/create/*"| Core["core-api<br/>FastAPI"]
+    Nginx -->|"/secondary-api/*"| Sec["secondary-api<br/>Node / Express"]
+    Nginx -->|"/core-api/*"| Core["core-api<br/>FastAPI"]
     Nginx -->|"/ , /console.html"| StaticUI[("ui/ static files")]
 
     Sec --> Mongo[("MongoDB<br/>mongo:27017")]
@@ -81,12 +81,12 @@ sequenceDiagram
 
     Note over Sec,Core: These are two independent tokens for two independent<br/>services with no shared sessions. Tenant context has<br/>to be re-checked on every request, in both places.
 
-    UI->>Nginx: GET /distro/api/campaigns (Bearer JWT A)
+    UI->>Nginx: GET /secondary-api/api/campaigns (Bearer JWT A)
     Nginx->>Sec: proxy
     Sec->>Sec: does this query filter by org_id?
     Sec-->>UI: campaigns (meant to be this org only)
 
-    UI->>Nginx: GET /create/api/projects/ (Bearer JWT B)
+    UI->>Nginx: GET /core-api/api/projects/ (Bearer JWT B)
     Nginx->>Core: proxy
     Core->>Core: does this query filter by org_id?
     Core-->>UI: projects (meant to be this org only)
@@ -94,8 +94,8 @@ sequenceDiagram
 
 | Service | Stack | Responsibility |
 |---|---|---|
-| **distro-api** | Node · Express · Mongoose · MongoDB | Campaigns, profiles, assets, team invites, storage |
-| **create-api** | FastAPI · SQLAlchemy · PostgreSQL · Celery · Redis | Projects, authentication, async export tasks |
+| **secondary-api** | Node · Express · Mongoose · MongoDB | Campaigns, profiles, assets, team invites, storage |
+| **core-api** | FastAPI · SQLAlchemy · PostgreSQL · Celery · Redis | Projects, authentication, async export tasks |
 | **nginx** | nginx 1.27 | Reverse proxy for both APIs; serves the web UI |
 | **MinIO** | S3-compatible object storage | Presigned upload/download URLs |
 | **decoy-metadata** | Node | Fake cloud metadata endpoint — SSRF target, fake data only |
@@ -109,8 +109,8 @@ what makes cross-tenant isolation the central theme of the challenge set.
 
 ```bash
 docker compose up --build -d
-docker compose exec distro-api node seed.js
-docker compose exec create-api python seed.py
+docker compose exec secondary-api node seed.js
+docker compose exec core-api python seed.py
 ```
 
 Then open **<http://localhost:8080>** in your browser and log in with one of
@@ -135,7 +135,7 @@ docker compose down -v
 | **MinIO console** | <http://localhost:9001> | `tenantsheep` / `tenantsheep123` |
 | **decoy-metadata** | <http://localhost:1338> | SSRF target — fake data only |
 
-nginx fronts both APIs under `/distro/` and `/create/` and serves the UI at
+nginx fronts both APIs under `/secondary-api/` and `/core-api/` and serves the UI at
 `/` and `/console.html`. The API console is the most convenient way to drive
 the backends directly, including with hand-forged tokens.
 
@@ -163,9 +163,9 @@ short on time, not on your first attempt.
 
 The set covers:
 
-- **distro-api** — cross-tenant search, IDOR, a legacy route with broken
+- **secondary-api** — cross-tenant search, IDOR, a legacy route with broken
   token handling, SSRF, and path traversal.
-- **create-api** — SQL injection, a missing-auth route, mass assignment,
+- **core-api** — SQL injection, a missing-auth route, mass assignment,
   Celery task injection, a cross-tenant cache leak, and a structural
   tenant-isolation exercise.
 - **Infrastructure** — a deliberate omission in `nginx.conf` relevant to
@@ -179,12 +179,12 @@ The set covers:
 
 ## Staging vs. production posture
 
-`create-api` exposes a `DEBUG` flag that toggles between a staging-like and
+`core-api` exposes a `DEBUG` flag that toggles between a staging-like and
 a production-like posture. To compare the two, set `DEBUG: "false"` for the
-`create-api` service in `docker-compose.yml` and restart it:
+`core-api` service in `docker-compose.yml` and restart it:
 
 ```bash
-docker compose up -d --build create-api
+docker compose up -d --build core-api
 ```
 
 Several behaviors change at once when the flag flips. Comparing them is
@@ -197,11 +197,11 @@ itself one of the challenges.
 Both services were functionally tested during development, but to different
 degrees:
 
-- **create-api** — the full HTTP flow (login, the SQL injection, the
+- **core-api** — the full HTTP flow (login, the SQL injection, the
   missing-auth route, and mass assignment) was exercised end-to-end against
   a live SQLite database, and the Celery task's missing-tenant-check logic
   was confirmed directly.
-- **distro-api** — dependencies install cleanly and every file passes a
+- **secondary-api** — dependencies install cleanly and every file passes a
   syntax check, but it could not be run end-to-end against a live MongoDB in
   the environment it was built in. That service gets its first real run when
   you bring up `docker compose` yourself. If something doesn't behave as
@@ -228,8 +228,8 @@ you do not own or have explicit permission to test.
 ├── SOLUTIONS.md           # full walkthroughs (do not publish)
 ├── README.md
 ├── docker-compose.yml
-├── create-api/            # FastAPI service
-├── distro-api/            # Node / Express service
+├── core-api/            # FastAPI service
+├── secondary-api/            # Node / Express service
 ├── decoy-metadata/        # fake metadata endpoint (SSRF target)
 ├── nginx/
 │   └── nginx.conf         # reverse proxy config (contains the infra omission)
